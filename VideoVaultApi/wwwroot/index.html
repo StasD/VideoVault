@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Vault</title>
+  <link rel="stylesheet" href="/lib/bootstrap-5.3.8-dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="/css/site.css" />
+  <link rel="stylesheet" href="/css/main.css" />
+</head>
+
+<body>
+  <header>
+    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+      <div class="container-fluid">
+        <a class="navbar-brand text-start" style="min-width: 120px">Video Vault</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
+          aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+          <ul class="navbar-nav nav-underline flex-grow-1 text-center">
+            <li class="nav-item" style="min-width: 100px">
+              <a class="nav-link text-dark active" data-bind="css: { active: activeTab() === tabs.catalogue.name }, click: () => showCatalogue()">Catalogue</a>
+            </li>
+            <li class="nav-item" style="min-width: 80px">
+              <a class="nav-link text-dark" data-bind="css: { active: activeTab() === tabs.upload.name }, click: () => showUpload()">Upload</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="container">
+    <main role="main" class="pb-3">
+
+      <div data-bind="visible: activeTab() === tabs.catalogue.name, using: catalogueViewModel, as: 'catalogue'">
+        <div class="text-center">
+          <h2>Your video catalogue</h2>
+          <p>Click on the title to play a video.</p>
+        </div>
+
+        <div style="display: none; width: 100%; height: auto; aspect-ratio: 16 / 9; margin-bottom: 16px" data-bind="visible: activeVideoUrl()">
+          <video controls style="display: block; width: 100%; height: 100%; background-color: #000" data-bind="attr: { id: videoPlayerId }"></video>
+        </div>
+
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th scope="col" style="width: 100%; font-weight: 600"><a style="cursor: pointer" data-bind="click: () => sortTable('name')">Name<img style="vertical-align: middle; margin-left: 4px" src="./svg/chevron-up.svg" data-bind="visible: sortBy() === 'name', attr: { src: sortByDesc() ? './svg/chevron-down.svg' : './svg/chevron-up.svg' }"></a></th>
+              <th scope="col" style="white-space: nowrap; min-width: 120px; font-weight: 600"><a style="cursor: pointer" data-bind="click: () => sortTable('lastModified')">Date<img style="display: none; vertical-align: middle; margin-left: 4px" data-bind="visible: sortBy() === 'lastModified', attr: { src: sortByDesc() ? './svg/chevron-down.svg' : './svg/chevron-up.svg' }"></a></th>
+              <th scope="col" style="white-space: nowrap; min-width: 80px; font-weight: 600"><a style="cursor: pointer" data-bind="click: () => sortTable('size')">Size<img style="display: none; vertical-align: middle; margin-left: 4px" data-bind="visible: sortBy() === 'size', attr: { src: sortByDesc() ? './svg/chevron-down.svg' : './svg/chevron-up.svg' }"></a></th>
+            </tr>
+          </thead>
+          <tbody data-bind="visible: isLoading()">
+            <tr>
+              <td colspan="3">Loading...</td>
+            </tr>
+          </tbody>
+          <tbody style="display: none" data-bind="visible: loadingError()">
+            <tr>
+              <td colspan="3" data-bind="text: `Error: ${showLoadingError()}`"></td>
+            </tr>
+          </tbody>
+          <tbody style="display: none" data-bind="visible: !isLoading() && !loadingError() && (mediaFiles()?.length === 0)">
+            <tr>
+              <td colspan="3">The catalogue is emply. Select the 'Upload' tab in the menu to upload files.</td>
+            </tr>
+          </tbody>
+          <tbody style="display: none" data-bind="visible: !isLoading() && !loadingError() && (mediaFiles()?.length > 0), foreach: mediaFiles">
+            <tr>
+              <td><a style="cursor: pointer" data-bind="text: name, attr: { href: `/media/${name}` }, click: () => catalogue.playVideo(`/media/${name}`)"></a></td>
+              <td style="white-space: nowrap" data-bind="text: lastModifiedStr"></td>
+              <td style="white-space: nowrap; text-align: right" data-bind="text: sizeStr"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: none" id="uploadComponent" data-bind="visible: activeTab() === tabs.upload.name, using: uploadViewModel, as: 'upload'">
+        <div class="text-center">
+          <h2>Upload your video files</h2>
+          <p>Click the button to select video files to upload.</p>
+        </div>
+
+        <input style="display: none" type="file" accept="video/mp4, .mp4" data-bind="attr: { id: fileInputId }, event: { change: onFilesSelected }" multiple />
+
+        <button class="btn btn-primary" data-bind="text: (currentUploads().length > 0 ? 'Cancel Uploads' : 'Upload Videos'), css: { 'btn-primary': currentUploads().length === 0, 'btn-danger': currentUploads().length > 0 }, click: () => onButtonClick()">Upload Videos</button>
+
+        <div style="display: hidden; border-top: 1px solid #ccc; margin-top: 16px" data-bind="visible: uploadStatus().length > 0, foreach: uploadStatus">
+          <div style="border-bottom: 1px solid #ccc; padding: 8px" data-bind="style: { backgroundColor: (uploadError ? '#fee7ef' : '') }">
+            <div><span style="font-weight: 600" data-bind="text: fileName"></span> status:</div>
+            <div>
+              <progress style="vertical-align: middle" data-bind="attr: { value: uploadProgress }" max="100"></progress>
+              <span style="vertical-align: middle; margin-left: 8px" data-bind="text: `${uploadProgress}%`"></span>
+            </div>
+            <div data-bind="text: uploadMessage, visible: uploadMessage"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <footer class="border-top footer text-muted">
+    <div class="container">
+      &copy; 2025 - Video Vault
+    </div>
+  </footer>
+
+  <script src="/lib/jquery-3.7.1.min.js"></script>
+  <script src="/lib/bootstrap-5.3.8-dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/lib/knockout-3.5.1.js"></script>
+  <script type="module" src="/js/knockout-es.js"></script>
+  <script type="module" src="/js/main.js"></script>
+</body>
+
+</html>
