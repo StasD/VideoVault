@@ -20,7 +20,7 @@ public class MediaFilesController(IConfiguration configuration) : ControllerBase
     private readonly string MediaFolderPath = configuration["MediaFolderPath"]!;
 
     [HttpGet("ListMediaFiles")]
-    public async Task<Ok<List<MediaFileModel>>> ListMediaFiles(string? ext = null, string? search = null)
+    public  Ok<List<MediaFileModel>> ListMediaFiles(string? ext = null, string? search = null)
         => TypedResults.Ok(new DirectoryInfo(MediaFolderPath).GetFiles()
             .Where(fi =>
                 !fi.Name.StartsWith(TEMP_FILE_PREFIX, StringComparison.Ordinal) &&
@@ -95,16 +95,18 @@ public class MediaFilesController(IConfiguration configuration) : ControllerBase
                     HelperFunctions.DeleteFile(tempFilePath); // delete partially uploaded file
                     return HelperFunctions.InternalServerError(errorTitle, "Could not upload file.");
                 }
-
-                // rename temp file
-                System.IO.File.Move(tempFilePath, filePath, true);
             }
 
-            // set 'Last Modified' date (should be after closing writeStream, thus outside 'using')
+            // following statements should be after closing writeStream, thus outside 'using'
+
+            // set 'Last Modified' date
             if (fileLastModified != null)
             {
-                System.IO.File.SetLastWriteTime(filePath, UnixEpoch.AddMilliseconds(Convert.ToDouble(fileLastModified)));
+                System.IO.File.SetLastWriteTime(tempFilePath, UnixEpoch.AddMilliseconds(Convert.ToDouble(fileLastModified)));
             }
+
+            // rename temp file
+            System.IO.File.Move(tempFilePath, filePath, true);
         }
         catch
         {
