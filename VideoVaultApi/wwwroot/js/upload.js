@@ -69,7 +69,7 @@ function UploadViewModel(mainViewModel) {
       })
       .catch(function (error) {
         uploadInfo.uploadProgress = 0;
-        uploadInfo.uploadMessage = axios.isCancel(error) ? 'Upload cancelled' : `Upload failed': ${formatAxiosError(error)}`;
+        uploadInfo.uploadMessage = axios.isCancel(error) ? 'Upload cancelled' : `Upload failed: ${formatAxiosError(error)}`;
         uploadInfo.uploadError = error;
         self.updateUploadStatus(uploadInfo);
         return Promise.reject(error);
